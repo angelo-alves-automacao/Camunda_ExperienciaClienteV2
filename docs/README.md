@@ -193,26 +193,26 @@ Camunda/
 # =============================================================================
 
 # CAMUNDA
-CAMUNDA_URL=https://camundahml.austa.com.br/engine-rest
+CAMUNDA_URL=https://00000.austa.com.br/engine-rest
 
 # API PACIENTE (Bus Austa)
-API_PACIENTE_URL=https://bus.austaclinicas.com.br/api/autorizacao/cirurgia
+API_PACIENTE_URL=https://0000.austaclinicas.com.br/api/autorizacao/cirurgia
 API_TIMEOUT_SECONDS=30
 
 # ORACLE / TASY
-ORACLE_HOST=10.100.0.9
+ORACLE_HOST=0000
 ORACLE_PORT=1521
-ORACLE_SERVICE_NAME=dbhausta
-ORACLE_USER=tasy
-ORACLE_PASSWORD=tasy123
+ORACLE_SERVICE_NAME=0000
+ORACLE_USER=0000
+ORACLE_PASSWORD=0000
 
 # IBM RPA (Process Management API)
 IBM_RPA_API_URL=https://br1api.rpa.ibm.com
-IBM_RPA_WORKSPACE_ID=93e07fe9-01f3-4a27-af64-50f7b7729fd8
-IBM_RPA_TENANT_ID=93e07fe9-01f3-4a27-af64-50f7b7729fd8
+IBM_RPA_WORKSPACE_ID=0000
+IBM_RPA_TENANT_ID=90000
 IBM_RPA_USERNAME=robo.rpa@austa.com.br
-IBM_RPA_PASSWORD=Austa#2025!
-IBM_RPA_PROCESS_ID=354867c6-0721-47a7-9857-eadef9013e03
+IBM_RPA_PASSWORD=0000
+IBM_RPA_PROCESS_ID=0000
 IBM_RPA_TIMEOUT_SECONDS=300
 IBM_RPA_POLL_INTERVAL_SECONDS=10
 
