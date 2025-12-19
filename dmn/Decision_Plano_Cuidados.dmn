@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" xmlns:camunda="http://camunda.org/schema/1.0/dmn" id="Definitions_PlanoCuidados" name="DRD" namespace="http://camunda.org/schema/1.0/dmn">
+  <decision id="Decision_Plano_Cuidados" name="Definir Plano de Cuidados">
+    <decisionTable id="DecisionTable_PlanoCuidados" hitPolicy="FIRST">
+      <input id="Input_NivelRisco" label="Nivel de Risco" camunda:inputVariable="nivel_risco">
+        <inputExpression id="InputExpression_NivelRisco" typeRef="string">
+          <text>nivel_risco</text>
+        </inputExpression>
+      </input>
+      <input id="Input_Idade" label="Idade" camunda:inputVariable="idade">
+        <inputExpression id="InputExpression_Idade" typeRef="integer">
+          <text>idade</text>
+        </inputExpression>
+      </input>
+      <input id="Input_DoencaCronica" label="Tem Doenca Cronica" camunda:inputVariable="tem_doenca_cronica">
+        <inputExpression id="InputExpression_DoencaCronica" typeRef="boolean">
+          <text>tem_doenca_cronica</text>
+        </inputExpression>
+      </input>
+      <output id="Output_FrequenciaContato" label="Frequencia Contato" name="frequencia_contato" typeRef="string" />
+      <output id="Output_CanalPrincipal" label="Canal Principal" name="canal_principal" typeRef="string" />
+      <output id="Output_TipoAcompanhamento" label="Tipo Acompanhamento" name="tipo_acompanhamento" typeRef="string" />
+      <output id="Output_NavegadorDedicado" label="Navegador Dedicado" name="navegador_dedicado" typeRef="boolean" />
+      <rule id="Rule_Complexo">
+        <description>Pacientes complexos (5%) - Acompanhamento intensivo</description>
+        <inputEntry id="Input_R1_Risco">
+          <text>"COMPLEXO"</text>
+        </inputEntry>
+        <inputEntry id="Input_R1_Idade">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="Input_R1_Cronica">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Output_R1_Frequencia">
+          <text>"DIARIO"</text>
+        </outputEntry>
+        <outputEntry id="Output_R1_Canal">
+          <text>"WHATSAPP_TELEFONE_VISITA"</text>
+        </outputEntry>
+        <outputEntry id="Output_R1_Tipo">
+          <text>"GESTAO_CASO_INTENSIVA"</text>
+        </outputEntry>
+        <outputEntry id="Output_R1_Navegador">
+          <text>true</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_AltoRisco">
+        <description>Pacientes alto risco (15%) - Navegador dedicado</description>
+        <inputEntry id="Input_R2_Risco">
+          <text>"ALTO"</text>
+        </inputEntry>
+        <inputEntry id="Input_R2_Idade">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="Input_R2_Cronica">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Output_R2_Frequencia">
+          <text>"2_3_VEZES_SEMANA"</text>
+        </outputEntry>
+        <outputEntry id="Output_R2_Canal">
+          <text>"WHATSAPP_NAVEGADOR"</text>
+        </outputEntry>
+        <outputEntry id="Output_R2_Tipo">
+          <text>"GESTAO_DOENCA_CRONICA"</text>
+        </outputEntry>
+        <outputEntry id="Output_R2_Navegador">
+          <text>true</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_ModeradoCronica">
+        <description>Pacientes moderados com doenca cronica</description>
+        <inputEntry id="Input_R3_Risco">
+          <text>"MODERADO"</text>
+        </inputEntry>
+        <inputEntry id="Input_R3_Idade">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="Input_R3_Cronica">
+          <text>true</text>
+        </inputEntry>
+        <outputEntry id="Output_R3_Frequencia">
+          <text>"SEMANAL"</text>
+        </outputEntry>
+        <outputEntry id="Output_R3_Canal">
+          <text>"WHATSAPP_PROGRAMA_DIGITAL"</text>
+        </outputEntry>
+        <outputEntry id="Output_R3_Tipo">
+          <text>"PROGRAMA_CRONICO_DIGITAL"</text>
+        </outputEntry>
+        <outputEntry id="Output_R3_Navegador">
+          <text>false</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_ModeradoIdoso">
+        <description>Pacientes moderados idosos</description>
+        <inputEntry id="Input_R4_Risco">
+          <text>"MODERADO"</text>
+        </inputEntry>
+        <inputEntry id="Input_R4_Idade">
+          <text>&gt;= 65</text>
+        </inputEntry>
+        <inputEntry id="Input_R4_Cronica">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Output_R4_Frequencia">
+          <text>"SEMANAL"</text>
+        </outputEntry>
+        <outputEntry id="Output_R4_Canal">
+          <text>"WHATSAPP_VOZ"</text>
+        </outputEntry>
+        <outputEntry id="Output_R4_Tipo">
+          <text>"PROGRAMA_IDOSO_ATIVO"</text>
+        </outputEntry>
+        <outputEntry id="Output_R4_Navegador">
+          <text>false</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_ModeradoPadrao">
+        <description>Pacientes moderados padrao (30%)</description>
+        <inputEntry id="Input_R5_Risco">
+          <text>"MODERADO"</text>
+        </inputEntry>
+        <inputEntry id="Input_R5_Idade">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="Input_R5_Cronica">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Output_R5_Frequencia">
+          <text>"SEMANAL"</text>
+        </outputEntry>
+        <outputEntry id="Output_R5_Canal">
+          <text>"WHATSAPP"</text>
+        </outputEntry>
+        <outputEntry id="Output_R5_Tipo">
+          <text>"PROGRAMA_PREVENTIVO"</text>
+        </outputEntry>
+        <outputEntry id="Output_R5_Navegador">
+          <text>false</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_BaixoRisco">
+        <description>Pacientes baixo risco (50%)</description>
+        <inputEntry id="Input_R6_Risco">
+          <text>"BAIXO"</text>
+        </inputEntry>
+        <inputEntry id="Input_R6_Idade">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="Input_R6_Cronica">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Output_R6_Frequencia">
+          <text>"MENSAL"</text>
+        </outputEntry>
+        <outputEntry id="Output_R6_Canal">
+          <text>"WHATSAPP_AUTOMATIZADO"</text>
+        </outputEntry>
+        <outputEntry id="Output_R6_Tipo">
+          <text>"CAMPANHAS_PREVENTIVAS"</text>
+        </outputEntry>
+        <outputEntry id="Output_R6_Navegador">
+          <text>false</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_Default">
+        <description>Caso nao classificado</description>
+        <inputEntry id="Input_RD_Risco">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="Input_RD_Idade">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="Input_RD_Cronica">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Output_RD_Frequencia">
+          <text>"SEMANAL"</text>
+        </outputEntry>
+        <outputEntry id="Output_RD_Canal">
+          <text>"WHATSAPP"</text>
+        </outputEntry>
+        <outputEntry id="Output_RD_Tipo">
+          <text>"AVALIAR_MANUALMENTE"</text>
+        </outputEntry>
+        <outputEntry id="Output_RD_Navegador">
+          <text>false</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

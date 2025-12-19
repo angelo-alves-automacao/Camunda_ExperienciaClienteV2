@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" xmlns:camunda="http://camunda.org/schema/1.0/dmn" id="Definitions_TarefaSelfService" name="DRD" namespace="http://camunda.org/schema/1.0/dmn">
+  <decision id="Decision_Tarefa_SelfService" name="Identificar Tarefa Self-Service">
+    <decisionTable id="DecisionTable_TarefaSS" hitPolicy="FIRST">
+      <input id="Input_Intencao" label="Intencao" camunda:inputVariable="intencao">
+        <inputExpression id="InputExpression_Intencao" typeRef="string">
+          <text>intencao</text>
+        </inputExpression>
+      </input>
+      <input id="Input_Canal" label="Canal" camunda:inputVariable="canal">
+        <inputExpression id="InputExpression_Canal" typeRef="string">
+          <text>canal</text>
+        </inputExpression>
+      </input>
+      <output id="Output_TarefaCodigo" label="Codigo Tarefa" name="tarefa_codigo" typeRef="string" />
+      <output id="Output_TarefaNome" label="Nome Tarefa" name="tarefa_nome" typeRef="string" />
+      <output id="Output_RPANecessario" label="RPA Necessario" name="rpa_necessario" typeRef="boolean" />
+      <output id="Output_ProcessoRPA" label="Processo RPA" name="processo_rpa" typeRef="string" />
+      <rule id="Rule_Carteirinha">
+        <description>Segunda via de carteirinha digital</description>
+        <inputEntry id="Input_R1_Intencao">
+          <text>"CARTEIRINHA","SEGUNDA_VIA","CARTAO"</text>
+        </inputEntry>
+        <inputEntry id="Input_R1_Canal">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Output_R1_Codigo">
+          <text>"SS_CARTEIRINHA"</text>
+        </outputEntry>
+        <outputEntry id="Output_R1_Nome">
+          <text>"Segunda Via Carteirinha Digital"</text>
+        </outputEntry>
+        <outputEntry id="Output_R1_RPA">
+          <text>false</text>
+        </outputEntry>
+        <outputEntry id="Output_R1_Processo">
+          <text></text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_Boleto">
+        <description>Envio de boleto ou fatura</description>
+        <inputEntry id="Input_R2_Intencao">
+          <text>"BOLETO","FATURA","PAGAMENTO","MENSALIDADE"</text>
+        </inputEntry>
+        <inputEntry id="Input_R2_Canal">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Output_R2_Codigo">
+          <text>"SS_BOLETO"</text>
+        </outputEntry>
+        <outputEntry id="Output_R2_Nome">
+          <text>"Envio de Boleto/Fatura"</text>
+        </outputEntry>
+        <outputEntry id="Output_R2_RPA">
+          <text>false</text>
+        </outputEntry>
+        <outputEntry id="Output_R2_Processo">
+          <text></text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_StatusAutorizacao">
+        <description>Consulta status de autorizacao</description>
+        <inputEntry id="Input_R3_Intencao">
+          <text>"STATUS_AUTORIZACAO","MINHA_AUTORIZACAO","GUIA"</text>
+        </inputEntry>
+        <inputEntry id="Input_R3_Canal">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Output_R3_Codigo">
+          <text>"SS_STATUS_AUTORIZACAO"</text>
+        </outputEntry>
+        <outputEntry id="Output_R3_Nome">
+          <text>"Status da Autorizacao"</text>
+        </outputEntry>
+        <outputEntry id="Output_R3_RPA">
+          <text>false</text>
+        </outputEntry>
+        <outputEntry id="Output_R3_Processo">
+          <text></text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_ResultadoExame">
+        <description>Consulta resultado de exames</description>
+        <inputEntry id="Input_R4_Intencao">
+          <text>"RESULTADO_EXAME","EXAME","LAUDO"</text>
+        </inputEntry>
+        <inputEntry id="Input_R4_Canal">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Output_R4_Codigo">
+          <text>"SS_RESULTADO_EXAME"</text>
+        </outputEntry>
+        <outputEntry id="Output_R4_Nome">
+          <text>"Resultado de Exames"</text>
+        </outputEntry>
+        <outputEntry id="Output_R4_RPA">
+          <text>false</text>
+        </outputEntry>
+        <outputEntry id="Output_R4_Processo">
+          <text></text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_RedeCred">
+        <description>Consulta rede credenciada</description>
+        <inputEntry id="Input_R5_Intencao">
+          <text>"REDE_CREDENCIADA","PRESTADOR","MEDICO","CLINICA","HOSPITAL"</text>
+        </inputEntry>
+        <inputEntry id="Input_R5_Canal">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Output_R5_Codigo">
+          <text>"SS_REDE_CREDENCIADA"</text>
+        </outputEntry>
+        <outputEntry id="Output_R5_Nome">
+          <text>"Busca Rede Credenciada"</text>
+        </outputEntry>
+        <outputEntry id="Output_R5_RPA">
+          <text>false</text>
+        </outputEntry>
+        <outputEntry id="Output_R5_Processo">
+          <text></text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_Cobertura">
+        <description>Consulta cobertura e carencias</description>
+        <inputEntry id="Input_R6_Intencao">
+          <text>"COBERTURA","CARENCIA","PLANO","PROCEDIMENTO_COBERTO"</text>
+        </inputEntry>
+        <inputEntry id="Input_R6_Canal">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Output_R6_Codigo">
+          <text>"SS_COBERTURA"</text>
+        </outputEntry>
+        <outputEntry id="Output_R6_Nome">
+          <text>"Consulta Cobertura e Carencias"</text>
+        </outputEntry>
+        <outputEntry id="Output_R6_RPA">
+          <text>false</text>
+        </outputEntry>
+        <outputEntry id="Output_R6_Processo">
+          <text></text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_Agendamento">
+        <description>Agendamento de consulta simples</description>
+        <inputEntry id="Input_R7_Intencao">
+          <text>"AGENDAR","AGENDAMENTO","MARCAR_CONSULTA"</text>
+        </inputEntry>
+        <inputEntry id="Input_R7_Canal">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Output_R7_Codigo">
+          <text>"SS_AGENDAMENTO"</text>
+        </outputEntry>
+        <outputEntry id="Output_R7_Nome">
+          <text>"Agendamento de Consulta"</text>
+        </outputEntry>
+        <outputEntry id="Output_R7_RPA">
+          <text>true</text>
+        </outputEntry>
+        <outputEntry id="Output_R7_Processo">
+          <text>"IBM_RPA_PROCESS_AGENDAMENTO"</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_Cancelamento">
+        <description>Cancelamento de agendamento</description>
+        <inputEntry id="Input_R8_Intencao">
+          <text>"CANCELAR","CANCELAMENTO","DESMARCAR"</text>
+        </inputEntry>
+        <inputEntry id="Input_R8_Canal">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Output_R8_Codigo">
+          <text>"SS_CANCELAMENTO"</text>
+        </outputEntry>
+        <outputEntry id="Output_R8_Nome">
+          <text>"Cancelamento de Agendamento"</text>
+        </outputEntry>
+        <outputEntry id="Output_R8_RPA">
+          <text>true</text>
+        </outputEntry>
+        <outputEntry id="Output_R8_Processo">
+          <text>"IBM_RPA_PROCESS_AGENDAMENTO"</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_DeclaracaoIR">
+        <description>Declaracao para Imposto de Renda</description>
+        <inputEntry id="Input_R9_Intencao">
+          <text>"DECLARACAO_IR","IMPOSTO_RENDA","INFORME"</text>
+        </inputEntry>
+        <inputEntry id="Input_R9_Canal">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Output_R9_Codigo">
+          <text>"SS_DECLARACAO_IR"</text>
+        </outputEntry>
+        <outputEntry id="Output_R9_Nome">
+          <text>"Declaracao para Imposto de Renda"</text>
+        </outputEntry>
+        <outputEntry id="Output_R9_RPA">
+          <text>false</text>
+        </outputEntry>
+        <outputEntry id="Output_R9_Processo">
+          <text></text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_Cadastro">
+        <description>Atualizacao de dados cadastrais</description>
+        <inputEntry id="Input_R10_Intencao">
+          <text>"ATUALIZAR_CADASTRO","DADOS","ENDERECO","TELEFONE"</text>
+        </inputEntry>
+        <inputEntry id="Input_R10_Canal">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Output_R10_Codigo">
+          <text>"SS_ATUALIZACAO_CADASTRAL"</text>
+        </outputEntry>
+        <outputEntry id="Output_R10_Nome">
+          <text>"Atualizacao de Dados Cadastrais"</text>
+        </outputEntry>
+        <outputEntry id="Output_R10_RPA">
+          <text>false</text>
+        </outputEntry>
+        <outputEntry id="Output_R10_Processo">
+          <text></text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_Default">
+        <description>Intencao nao mapeada - FAQ</description>
+        <inputEntry id="Input_RD_Intencao">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="Input_RD_Canal">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Output_RD_Codigo">
+          <text>"SS_FAQ"</text>
+        </outputEntry>
+        <outputEntry id="Output_RD_Nome">
+          <text>"Perguntas Frequentes"</text>
+        </outputEntry>
+        <outputEntry id="Output_RD_RPA">
+          <text>false</text>
+        </outputEntry>
+        <outputEntry id="Output_RD_Processo">
+          <text></text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

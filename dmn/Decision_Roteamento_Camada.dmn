@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" xmlns:camunda="http://camunda.org/schema/1.0/dmn" id="Definitions_RoteamentoCamada" name="DRD" namespace="http://camunda.org/schema/1.0/dmn">
+  <decision id="Decision_Roteamento_Camada" name="Rotear para Camada">
+    <decisionTable id="DecisionTable_Roteamento" hitPolicy="FIRST">
+      <input id="Input_TipoDemanda" label="Tipo Demanda" camunda:inputVariable="tipo_demanda">
+        <inputExpression id="InputExpression_TipoDemanda" typeRef="string">
+          <text>tipo_demanda</text>
+        </inputExpression>
+      </input>
+      <input id="Input_Complexidade" label="Complexidade" camunda:inputVariable="complexidade">
+        <inputExpression id="InputExpression_Complexidade" typeRef="string">
+          <text>complexidade</text>
+        </inputExpression>
+      </input>
+      <input id="Input_Urgencia" label="Urgencia" camunda:inputVariable="urgencia">
+        <inputExpression id="InputExpression_Urgencia" typeRef="string">
+          <text>urgencia</text>
+        </inputExpression>
+      </input>
+      <input id="Input_NivelRiscoPaciente" label="Nivel Risco Paciente" camunda:inputVariable="nivel_risco_paciente">
+        <inputExpression id="InputExpression_NivelRisco" typeRef="string">
+          <text>nivel_risco_paciente</text>
+        </inputExpression>
+      </input>
+      <output id="Output_Camada" label="Camada" name="camada" typeRef="string" />
+      <output id="Output_SLA" label="SLA (minutos)" name="sla_minutos" typeRef="integer" />
+      <output id="Output_Prioridade" label="Prioridade" name="prioridade" typeRef="integer" />
+      <rule id="Rule_Emergencia">
+        <description>Emergencia medica - Protocolo imediato</description>
+        <inputEntry id="Input_R1_Tipo">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="Input_R1_Complex">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="Input_R1_Urgencia">
+          <text>"EMERGENCIA"</text>
+        </inputEntry>
+        <inputEntry id="Input_R1_Risco">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Output_R1_Camada">
+          <text>"ESPECIALISTA"</text>
+        </outputEntry>
+        <outputEntry id="Output_R1_SLA">
+          <text>1</text>
+        </outputEntry>
+        <outputEntry id="Output_R1_Prioridade">
+          <text>1</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_PacienteComplexo">
+        <description>Paciente complexo - Navegador dedicado</description>
+        <inputEntry id="Input_R2_Tipo">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="Input_R2_Complex">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="Input_R2_Urgencia">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="Input_R2_Risco">
+          <text>"COMPLEXO"</text>
+        </inputEntry>
+        <outputEntry id="Output_R2_Camada">
+          <text>"NAVEGADOR"</text>
+        </outputEntry>
+        <outputEntry id="Output_R2_SLA">
+          <text>5</text>
+        </outputEntry>
+        <outputEntry id="Output_R2_Prioridade">
+          <text>2</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_PacienteAltoRisco">
+        <description>Paciente alto risco - Navegador dedicado</description>
+        <inputEntry id="Input_R3_Tipo">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="Input_R3_Complex">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="Input_R3_Urgencia">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="Input_R3_Risco">
+          <text>"ALTO"</text>
+        </inputEntry>
+        <outputEntry id="Output_R3_Camada">
+          <text>"NAVEGADOR"</text>
+        </outputEntry>
+        <outputEntry id="Output_R3_SLA">
+          <text>10</text>
+        </outputEntry>
+        <outputEntry id="Output_R3_Prioridade">
+          <text>2</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_ReclamacaoComplexa">
+        <description>Reclamacao complexa - Back-office</description>
+        <inputEntry id="Input_R4_Tipo">
+          <text>"RECLAMACAO"</text>
+        </inputEntry>
+        <inputEntry id="Input_R4_Complex">
+          <text>"ALTA","CRITICA"</text>
+        </inputEntry>
+        <inputEntry id="Input_R4_Urgencia">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="Input_R4_Risco">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Output_R4_Camada">
+          <text>"ESPECIALISTA"</text>
+        </outputEntry>
+        <outputEntry id="Output_R4_SLA">
+          <text>30</text>
+        </outputEntry>
+        <outputEntry id="Output_R4_Prioridade">
+          <text>2</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_TarefaSimples">
+        <description>Tarefa simples - Self-service automatico</description>
+        <inputEntry id="Input_R5_Tipo">
+          <text>"TAREFA"</text>
+        </inputEntry>
+        <inputEntry id="Input_R5_Complex">
+          <text>"BAIXA"</text>
+        </inputEntry>
+        <inputEntry id="Input_R5_Urgencia">
+          <text>"ROTINA"</text>
+        </inputEntry>
+        <inputEntry id="Input_R5_Risco">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Output_R5_Camada">
+          <text>"SELF_SERVICE"</text>
+        </outputEntry>
+        <outputEntry id="Output_R5_SLA">
+          <text>1</text>
+        </outputEntry>
+        <outputEntry id="Output_R5_Prioridade">
+          <text>4</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_InfoSimples">
+        <description>Informacao simples - Self-service automatico</description>
+        <inputEntry id="Input_R6_Tipo">
+          <text>"INFORMACAO"</text>
+        </inputEntry>
+        <inputEntry id="Input_R6_Complex">
+          <text>"BAIXA"</text>
+        </inputEntry>
+        <inputEntry id="Input_R6_Urgencia">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="Input_R6_Risco">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Output_R6_Camada">
+          <text>"SELF_SERVICE"</text>
+        </outputEntry>
+        <outputEntry id="Output_R6_SLA">
+          <text>1</text>
+        </outputEntry>
+        <outputEntry id="Output_R6_Prioridade">
+          <text>5</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_TarefaMedia">
+        <description>Tarefa media complexidade - Agente IA</description>
+        <inputEntry id="Input_R7_Tipo">
+          <text>"TAREFA"</text>
+        </inputEntry>
+        <inputEntry id="Input_R7_Complex">
+          <text>"MEDIA"</text>
+        </inputEntry>
+        <inputEntry id="Input_R7_Urgencia">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="Input_R7_Risco">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Output_R7_Camada">
+          <text>"AGENTE_IA"</text>
+        </outputEntry>
+        <outputEntry id="Output_R7_SLA">
+          <text>5</text>
+        </outputEntry>
+        <outputEntry id="Output_R7_Prioridade">
+          <text>3</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_TarefaUrgente">
+        <description>Tarefa urgente - Agente IA priorizado</description>
+        <inputEntry id="Input_R8_Tipo">
+          <text>"TAREFA"</text>
+        </inputEntry>
+        <inputEntry id="Input_R8_Complex">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="Input_R8_Urgencia">
+          <text>"URGENTE"</text>
+        </inputEntry>
+        <inputEntry id="Input_R8_Risco">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Output_R8_Camada">
+          <text>"AGENTE_IA"</text>
+        </outputEntry>
+        <outputEntry id="Output_R8_SLA">
+          <text>3</text>
+        </outputEntry>
+        <outputEntry id="Output_R8_Prioridade">
+          <text>2</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_TarefaComplexa">
+        <description>Tarefa alta complexidade - Navegador</description>
+        <inputEntry id="Input_R9_Tipo">
+          <text>"TAREFA"</text>
+        </inputEntry>
+        <inputEntry id="Input_R9_Complex">
+          <text>"ALTA","CRITICA"</text>
+        </inputEntry>
+        <inputEntry id="Input_R9_Urgencia">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="Input_R9_Risco">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Output_R9_Camada">
+          <text>"NAVEGADOR"</text>
+        </outputEntry>
+        <outputEntry id="Output_R9_SLA">
+          <text>15</text>
+        </outputEntry>
+        <outputEntry id="Output_R9_Prioridade">
+          <text>3</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_Default">
+        <description>Caso padrao - Agente IA avalia</description>
+        <inputEntry id="Input_RD_Tipo">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="Input_RD_Complex">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="Input_RD_Urgencia">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="Input_RD_Risco">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="Output_RD_Camada">
+          <text>"AGENTE_IA"</text>
+        </outputEntry>
+        <outputEntry id="Output_RD_SLA">
+          <text>5</text>
+        </outputEntry>
+        <outputEntry id="Output_RD_Prioridade">
+          <text>3</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

@@ -1,0 +1,99 @@
+# =============================================================================
+# OPERADORA DIGITAL DO FUTURO - Configuracao Spring Boot + Camunda
+# =============================================================================
+
+spring:
+  application:
+    name: operadora-digital
+
+  # Banco de dados H2 (desenvolvimento)
+  datasource:
+    url: jdbc:h2:mem:camunda;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  # Console H2 (apenas desenvolvimento)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  # JPA
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+
+# -----------------------------------------------------------------------------
+# CAMUNDA BPM
+# -----------------------------------------------------------------------------
+camunda:
+  bpm:
+    # Admin user
+    admin-user:
+      id: admin
+      password: admin
+      first-name: Admin
+      last-name: Operadora
+
+    # Filtros padrao no Tasklist
+    filter:
+      create: All tasks
+
+    # Auto-deploy de processos
+    auto-deployment-enabled: true
+
+    # Historico completo
+    history-level: full
+
+    # Job executor
+    job-execution:
+      enabled: true
+      max-jobs-per-acquisition: 10
+
+    # Metricas
+    metrics:
+      enabled: true
+      db-reporter-activate: true
+
+    # Webapp
+    webapp:
+      index-redirect-enabled: true
+
+# -----------------------------------------------------------------------------
+# LOGGING
+# -----------------------------------------------------------------------------
+logging:
+  level:
+    root: INFO
+    com.operadora: DEBUG
+    org.camunda: INFO
+    org.springframework: INFO
+
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# -----------------------------------------------------------------------------
+# SERVER
+# -----------------------------------------------------------------------------
+server:
+  port: 8080
+
+# -----------------------------------------------------------------------------
+# INTEGRACOES (configurar em producao)
+# -----------------------------------------------------------------------------
+whatsapp:
+  api:
+    url: ${WHATSAPP_API_URL:https://api.whatsapp.mock}
+    token: ${WHATSAPP_API_TOKEN:mock-token}
+
+ml:
+  api:
+    url: ${ML_API_URL:http://localhost:5000}
+
+oracle:
+  datasource:
+    url: ${ORACLE_URL:jdbc:oracle:thin:@localhost:1521:ORCL}
+    username: ${ORACLE_USER:system}
+    password: ${ORACLE_PASSWORD:oracle}

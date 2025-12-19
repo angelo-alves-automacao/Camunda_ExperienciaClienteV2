@@ -1,0 +1,434 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_CoordCuidado_V2"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <!-- =======================================================================
+       PROCESSO V2: Coordenacao do Cuidado com Java Delegates
+
+       Diferente da V1 (External Tasks), esta versao usa:
+       - camunda:delegateExpression para Spring Beans
+       - Boundary Events com Error Handling
+       - Timer para timeout de screening
+
+       Delegates necessarios:
+       - enviarBoasVindasDelegate
+       - realizarScreeningDelegate
+       - estratificarRiscoDelegate
+       - monitoramentoProativoDelegate
+       - comunicacaoProativaDelegate
+       - atribuirNavegadorDelegate
+       - direcionarRedeDelegate
+       - orquestrarJornadaDelegate
+       - comunicarTempoRealDelegate
+       - followupPosDelegate
+       - coletarNpsDelegate
+       - analisarDesfechosDelegate
+       - tratarTimeoutDelegate
+       - tratarErroDelegate
+       ======================================================================= -->
+
+  <!-- Error Definitions -->
+  <bpmn:error id="Error_Validacao" name="Erro Validacao" errorCode="ERRO_VALIDACAO" />
+  <bpmn:error id="Error_Integracao" name="Erro Integracao" errorCode="ERRO_INTEGRACAO" />
+  <bpmn:error id="Error_Timeout" name="Erro Timeout" errorCode="ERRO_TIMEOUT" />
+
+  <bpmn:process id="Process_Coordenacao_Cuidado_V2" name="Coordenacao do Cuidado V2" isExecutable="true">
+
+    <!-- ===== START EVENT ===== -->
+    <bpmn:startEvent id="Start_NovoBeneficiario" name="Novo Beneficiario">
+      <bpmn:outgoing>Flow_Start_BoasVindas</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <!-- ===== FASE 1: ONBOARDING ===== -->
+
+    <bpmn:serviceTask id="Task_EnviarBoasVindas"
+                      name="Enviar Boas-Vindas WhatsApp"
+                      camunda:delegateExpression="${enviarBoasVindasDelegate}">
+      <bpmn:incoming>Flow_Start_BoasVindas</bpmn:incoming>
+      <bpmn:outgoing>Flow_BoasVindas_Screening</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_RealizarScreening"
+                      name="Realizar Screening de Saude"
+                      camunda:delegateExpression="${realizarScreeningDelegate}">
+      <bpmn:incoming>Flow_BoasVindas_Screening</bpmn:incoming>
+      <bpmn:outgoing>Flow_Screening_ML</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Boundary Timer: Timeout de 24h para screening -->
+    <bpmn:boundaryEvent id="Boundary_TimeoutScreening"
+                        name="Timeout 24h"
+                        attachedToRef="Task_RealizarScreening"
+                        cancelActivity="true">
+      <bpmn:outgoing>Flow_Timeout_TratarTimeout</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="Timer_24h">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">P1D</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+
+    <bpmn:serviceTask id="Task_TratarTimeout"
+                      name="Tratar Timeout Screening"
+                      camunda:delegateExpression="${tratarTimeoutDelegate}">
+      <bpmn:incoming>Flow_Timeout_TratarTimeout</bpmn:incoming>
+      <bpmn:outgoing>Flow_Timeout_End</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_EstratificarRisco"
+                      name="Estratificar Risco (ML)"
+                      camunda:delegateExpression="${estratificarRiscoDelegate}">
+      <bpmn:incoming>Flow_Screening_ML</bpmn:incoming>
+      <bpmn:outgoing>Flow_ML_DMN</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Boundary Error: Erro de integracao no ML -->
+    <bpmn:boundaryEvent id="Boundary_ErroML"
+                        name="Erro Integracao"
+                        attachedToRef="Task_EstratificarRisco">
+      <bpmn:outgoing>Flow_ErroML_TratarErro</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorDef_ML" errorRef="Error_Integracao" />
+    </bpmn:boundaryEvent>
+
+    <bpmn:serviceTask id="Task_TratarErro"
+                      name="Tratar Erro Integracao"
+                      camunda:delegateExpression="${tratarErroDelegate}">
+      <bpmn:incoming>Flow_ErroML_TratarErro</bpmn:incoming>
+      <bpmn:outgoing>Flow_Erro_End</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ===== DMN: PLANO DE CUIDADOS ===== -->
+    <bpmn:businessRuleTask id="Task_DefinirPlanoCuidados"
+                           name="Definir Plano de Cuidados"
+                           camunda:resultVariable="plano_cuidados"
+                           camunda:decisionRef="Decision_Plano_Cuidados"
+                           camunda:mapDecisionResult="singleResult">
+      <bpmn:incoming>Flow_ML_DMN</bpmn:incoming>
+      <bpmn:outgoing>Flow_DMN_Gateway</bpmn:outgoing>
+    </bpmn:businessRuleTask>
+
+    <!-- ===== GATEWAY: NIVEL DE RISCO ===== -->
+    <bpmn:exclusiveGateway id="Gateway_NivelRisco" name="Nivel de Risco?">
+      <bpmn:incoming>Flow_DMN_Gateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_RiscoBaixoModerado</bpmn:outgoing>
+      <bpmn:outgoing>Flow_RiscoAltoComplexo</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- ===== CAMINHO: BAIXO/MODERADO ===== -->
+    <bpmn:serviceTask id="Task_MonitoramentoProativo"
+                      name="Monitoramento Proativo"
+                      camunda:delegateExpression="${monitoramentoProativoDelegate}">
+      <bpmn:incoming>Flow_RiscoBaixoModerado</bpmn:incoming>
+      <bpmn:outgoing>Flow_Proativo_Comunicacao</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_ComunicacaoProativa"
+                      name="Comunicacao Proativa"
+                      camunda:delegateExpression="${comunicacaoProativaDelegate}">
+      <bpmn:incoming>Flow_Proativo_Comunicacao</bpmn:incoming>
+      <bpmn:outgoing>Flow_Comunicacao_Followup</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ===== CAMINHO: ALTO/COMPLEXO ===== -->
+    <bpmn:serviceTask id="Task_AtribuirNavegador"
+                      name="Atribuir Navegador"
+                      camunda:delegateExpression="${atribuirNavegadorDelegate}">
+      <bpmn:incoming>Flow_RiscoAltoComplexo</bpmn:incoming>
+      <bpmn:outgoing>Flow_Navegador_Rede</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_DirecionarRede"
+                      name="Direcionar Rede Preferencial"
+                      camunda:delegateExpression="${direcionarRedeDelegate}">
+      <bpmn:incoming>Flow_Navegador_Rede</bpmn:incoming>
+      <bpmn:outgoing>Flow_Rede_Jornada</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_OrquestrarJornada"
+                      name="Orquestrar Jornada"
+                      camunda:delegateExpression="${orquestrarJornadaDelegate}">
+      <bpmn:incoming>Flow_Rede_Jornada</bpmn:incoming>
+      <bpmn:outgoing>Flow_Jornada_Tempo</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_ComunicarTempoReal"
+                      name="Comunicar Tempo Real"
+                      camunda:delegateExpression="${comunicarTempoRealDelegate}">
+      <bpmn:incoming>Flow_Jornada_Tempo</bpmn:incoming>
+      <bpmn:outgoing>Flow_Tempo_Followup</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ===== MERGE GATEWAY ===== -->
+    <bpmn:exclusiveGateway id="Gateway_MergeFollowup" name="Merge">
+      <bpmn:incoming>Flow_Comunicacao_Followup</bpmn:incoming>
+      <bpmn:incoming>Flow_Tempo_Followup</bpmn:incoming>
+      <bpmn:outgoing>Flow_Merge_Followup</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- ===== FASE 6: FOLLOW-UP ===== -->
+    <bpmn:serviceTask id="Task_FollowupPos"
+                      name="Follow-up Pos-Atendimento"
+                      camunda:delegateExpression="${followupPosDelegate}">
+      <bpmn:incoming>Flow_Merge_Followup</bpmn:incoming>
+      <bpmn:outgoing>Flow_Followup_NPS</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_ColetarNPS"
+                      name="Coletar NPS"
+                      camunda:delegateExpression="${coletarNpsDelegate}">
+      <bpmn:incoming>Flow_Followup_NPS</bpmn:incoming>
+      <bpmn:outgoing>Flow_NPS_Analise</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_AnalisarDesfechos"
+                      name="Analisar Desfechos"
+                      camunda:delegateExpression="${analisarDesfechosDelegate}">
+      <bpmn:incoming>Flow_NPS_Analise</bpmn:incoming>
+      <bpmn:outgoing>Flow_Analise_End</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ===== END EVENTS ===== -->
+    <bpmn:endEvent id="End_Processo" name="Ciclo Completo">
+      <bpmn:incoming>Flow_Analise_End</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="End_Timeout" name="Timeout">
+      <bpmn:incoming>Flow_Timeout_End</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="End_Erro" name="Erro">
+      <bpmn:incoming>Flow_Erro_End</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- ===== SEQUENCE FLOWS ===== -->
+    <bpmn:sequenceFlow id="Flow_Start_BoasVindas" sourceRef="Start_NovoBeneficiario" targetRef="Task_EnviarBoasVindas" />
+    <bpmn:sequenceFlow id="Flow_BoasVindas_Screening" sourceRef="Task_EnviarBoasVindas" targetRef="Task_RealizarScreening" />
+    <bpmn:sequenceFlow id="Flow_Screening_ML" sourceRef="Task_RealizarScreening" targetRef="Task_EstratificarRisco" />
+    <bpmn:sequenceFlow id="Flow_ML_DMN" sourceRef="Task_EstratificarRisco" targetRef="Task_DefinirPlanoCuidados" />
+    <bpmn:sequenceFlow id="Flow_DMN_Gateway" sourceRef="Task_DefinirPlanoCuidados" targetRef="Gateway_NivelRisco" />
+
+    <bpmn:sequenceFlow id="Flow_RiscoBaixoModerado" name="Baixo/Moderado" sourceRef="Gateway_NivelRisco" targetRef="Task_MonitoramentoProativo">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${nivel_risco == 'BAIXO' || nivel_risco == 'MODERADO'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_RiscoAltoComplexo" name="Alto/Complexo" sourceRef="Gateway_NivelRisco" targetRef="Task_AtribuirNavegador">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${nivel_risco == 'ALTO' || nivel_risco == 'COMPLEXO'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_Proativo_Comunicacao" sourceRef="Task_MonitoramentoProativo" targetRef="Task_ComunicacaoProativa" />
+    <bpmn:sequenceFlow id="Flow_Comunicacao_Followup" sourceRef="Task_ComunicacaoProativa" targetRef="Gateway_MergeFollowup" />
+
+    <bpmn:sequenceFlow id="Flow_Navegador_Rede" sourceRef="Task_AtribuirNavegador" targetRef="Task_DirecionarRede" />
+    <bpmn:sequenceFlow id="Flow_Rede_Jornada" sourceRef="Task_DirecionarRede" targetRef="Task_OrquestrarJornada" />
+    <bpmn:sequenceFlow id="Flow_Jornada_Tempo" sourceRef="Task_OrquestrarJornada" targetRef="Task_ComunicarTempoReal" />
+    <bpmn:sequenceFlow id="Flow_Tempo_Followup" sourceRef="Task_ComunicarTempoReal" targetRef="Gateway_MergeFollowup" />
+
+    <bpmn:sequenceFlow id="Flow_Merge_Followup" sourceRef="Gateway_MergeFollowup" targetRef="Task_FollowupPos" />
+    <bpmn:sequenceFlow id="Flow_Followup_NPS" sourceRef="Task_FollowupPos" targetRef="Task_ColetarNPS" />
+    <bpmn:sequenceFlow id="Flow_NPS_Analise" sourceRef="Task_ColetarNPS" targetRef="Task_AnalisarDesfechos" />
+    <bpmn:sequenceFlow id="Flow_Analise_End" sourceRef="Task_AnalisarDesfechos" targetRef="End_Processo" />
+
+    <!-- Flows de Erro e Timeout -->
+    <bpmn:sequenceFlow id="Flow_Timeout_TratarTimeout" sourceRef="Boundary_TimeoutScreening" targetRef="Task_TratarTimeout" />
+    <bpmn:sequenceFlow id="Flow_Timeout_End" sourceRef="Task_TratarTimeout" targetRef="End_Timeout" />
+    <bpmn:sequenceFlow id="Flow_ErroML_TratarErro" sourceRef="Boundary_ErroML" targetRef="Task_TratarErro" />
+    <bpmn:sequenceFlow id="Flow_Erro_End" sourceRef="Task_TratarErro" targetRef="End_Erro" />
+
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_Coordenacao_Cuidado_V2">
+      <bpmndi:BPMNShape id="Start_NovoBeneficiario_di" bpmnElement="Start_NovoBeneficiario">
+        <dc:Bounds x="152" y="232" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="127" y="275" width="87" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_EnviarBoasVindas_di" bpmnElement="Task_EnviarBoasVindas">
+        <dc:Bounds x="240" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_RealizarScreening_di" bpmnElement="Task_RealizarScreening">
+        <dc:Bounds x="390" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Boundary_TimeoutScreening_di" bpmnElement="Boundary_TimeoutScreening">
+        <dc:Bounds x="472" y="272" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="460" y="315" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_TratarTimeout_di" bpmnElement="Task_TratarTimeout">
+        <dc:Bounds x="440" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_EstratificarRisco_di" bpmnElement="Task_EstratificarRisco">
+        <dc:Bounds x="540" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Boundary_ErroML_di" bpmnElement="Boundary_ErroML">
+        <dc:Bounds x="622" y="272" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="605" y="315" width="71" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_TratarErro_di" bpmnElement="Task_TratarErro">
+        <dc:Bounds x="590" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_DefinirPlanoCuidados_di" bpmnElement="Task_DefinirPlanoCuidados">
+        <dc:Bounds x="690" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_NivelRisco_di" bpmnElement="Gateway_NivelRisco" isMarkerVisible="true">
+        <dc:Bounds x="845" y="225" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="830" y="195" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_MonitoramentoProativo_di" bpmnElement="Task_MonitoramentoProativo">
+        <dc:Bounds x="950" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ComunicacaoProativa_di" bpmnElement="Task_ComunicacaoProativa">
+        <dc:Bounds x="1100" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AtribuirNavegador_di" bpmnElement="Task_AtribuirNavegador">
+        <dc:Bounds x="950" y="320" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_DirecionarRede_di" bpmnElement="Task_DirecionarRede">
+        <dc:Bounds x="1100" y="320" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_OrquestrarJornada_di" bpmnElement="Task_OrquestrarJornada">
+        <dc:Bounds x="1250" y="320" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ComunicarTempoReal_di" bpmnElement="Task_ComunicarTempoReal">
+        <dc:Bounds x="1400" y="320" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_MergeFollowup_di" bpmnElement="Gateway_MergeFollowup" isMarkerVisible="true">
+        <dc:Bounds x="1425" y="225" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_FollowupPos_di" bpmnElement="Task_FollowupPos">
+        <dc:Bounds x="1530" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ColetarNPS_di" bpmnElement="Task_ColetarNPS">
+        <dc:Bounds x="1680" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AnalisarDesfechos_di" bpmnElement="Task_AnalisarDesfechos">
+        <dc:Bounds x="1830" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Processo_di" bpmnElement="End_Processo">
+        <dc:Bounds x="1982" y="232" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1963" y="275" width="74" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Timeout_di" bpmnElement="End_Timeout">
+        <dc:Bounds x="592" y="482" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="590" y="525" width="40" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Erro_di" bpmnElement="End_Erro">
+        <dc:Bounds x="742" y="402" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="750" y="445" width="21" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_Start_BoasVindas_di" bpmnElement="Flow_Start_BoasVindas">
+        <di:waypoint x="188" y="250" />
+        <di:waypoint x="240" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_BoasVindas_Screening_di" bpmnElement="Flow_BoasVindas_Screening">
+        <di:waypoint x="340" y="250" />
+        <di:waypoint x="390" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Screening_ML_di" bpmnElement="Flow_Screening_ML">
+        <di:waypoint x="490" y="250" />
+        <di:waypoint x="540" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ML_DMN_di" bpmnElement="Flow_ML_DMN">
+        <di:waypoint x="640" y="250" />
+        <di:waypoint x="690" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_DMN_Gateway_di" bpmnElement="Flow_DMN_Gateway">
+        <di:waypoint x="790" y="250" />
+        <di:waypoint x="845" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_RiscoBaixoModerado_di" bpmnElement="Flow_RiscoBaixoModerado">
+        <di:waypoint x="870" y="225" />
+        <di:waypoint x="870" y="140" />
+        <di:waypoint x="950" y="140" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="876" y="123" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_RiscoAltoComplexo_di" bpmnElement="Flow_RiscoAltoComplexo">
+        <di:waypoint x="870" y="275" />
+        <di:waypoint x="870" y="360" />
+        <di:waypoint x="950" y="360" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="876" y="373" width="72" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Proativo_Comunicacao_di" bpmnElement="Flow_Proativo_Comunicacao">
+        <di:waypoint x="1050" y="140" />
+        <di:waypoint x="1100" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Comunicacao_Followup_di" bpmnElement="Flow_Comunicacao_Followup">
+        <di:waypoint x="1200" y="140" />
+        <di:waypoint x="1450" y="140" />
+        <di:waypoint x="1450" y="225" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Navegador_Rede_di" bpmnElement="Flow_Navegador_Rede">
+        <di:waypoint x="1050" y="360" />
+        <di:waypoint x="1100" y="360" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Rede_Jornada_di" bpmnElement="Flow_Rede_Jornada">
+        <di:waypoint x="1200" y="360" />
+        <di:waypoint x="1250" y="360" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Jornada_Tempo_di" bpmnElement="Flow_Jornada_Tempo">
+        <di:waypoint x="1350" y="360" />
+        <di:waypoint x="1400" y="360" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Tempo_Followup_di" bpmnElement="Flow_Tempo_Followup">
+        <di:waypoint x="1450" y="320" />
+        <di:waypoint x="1450" y="275" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Merge_Followup_di" bpmnElement="Flow_Merge_Followup">
+        <di:waypoint x="1475" y="250" />
+        <di:waypoint x="1530" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Followup_NPS_di" bpmnElement="Flow_Followup_NPS">
+        <di:waypoint x="1630" y="250" />
+        <di:waypoint x="1680" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NPS_Analise_di" bpmnElement="Flow_NPS_Analise">
+        <di:waypoint x="1780" y="250" />
+        <di:waypoint x="1830" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Analise_End_di" bpmnElement="Flow_Analise_End">
+        <di:waypoint x="1930" y="250" />
+        <di:waypoint x="1982" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Timeout_TratarTimeout_di" bpmnElement="Flow_Timeout_TratarTimeout">
+        <di:waypoint x="490" y="308" />
+        <di:waypoint x="490" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Timeout_End_di" bpmnElement="Flow_Timeout_End">
+        <di:waypoint x="540" y="420" />
+        <di:waypoint x="566" y="420" />
+        <di:waypoint x="566" y="500" />
+        <di:waypoint x="592" y="500" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ErroML_TratarErro_di" bpmnElement="Flow_ErroML_TratarErro">
+        <di:waypoint x="640" y="308" />
+        <di:waypoint x="640" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Erro_End_di" bpmnElement="Flow_Erro_End">
+        <di:waypoint x="690" y="420" />
+        <di:waypoint x="742" y="420" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions>
